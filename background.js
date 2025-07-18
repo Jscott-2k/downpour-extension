@@ -14,22 +14,30 @@ let lastStatus = {};
  */
 function addToUncheckableDomains(rawHostname) {
   let hostname;
+
   try {
-    hostname = new URL(rawHostname).hostname.trim();
+    const url = new URL(rawHostname);
+    // Skip unsupported schemes (like chrome://)
+    if (!["http:", "https:"].includes(url.protocol)) {
+      throw new Error("Unsupported URL scheme");
+    }
+    hostname = url.hostname.trim();
   } catch {
+    // fallback: extract manually, or treat as a plain hostname
     hostname = rawHostname.trim();
   }
 
-  if (!UNCHECKABLE_DOMAINS.includes(hostname)) {
-    UNCHECKABLE_DOMAINS.push(hostname);
-    chrome.storage.local.set({ uncheckableDomains: UNCHECKABLE_DOMAINS });
-    chrome.notifications.create(`uncheckable-${hostname}`, {
-      type: "basic",
-      iconUrl: ICON_PATH,
-      title: "Site Status Uncheckable",
-      message: `${hostname} has been marked as unsupported for status checks due to browser restrictions.`,
-    });
-  }
+  if (!hostname || UNCHECKABLE_DOMAINS.includes(hostname)) return;
+
+  UNCHECKABLE_DOMAINS.push(hostname);
+  chrome.storage.local.set({ uncheckableDomains: UNCHECKABLE_DOMAINS });
+
+  chrome.notifications.create(`uncheckable-${hostname}`, {
+    type: "basic",
+    iconUrl: ICON_PATH,
+    title: "Domain Marked as Unsupported",
+    message: `${hostname} has been added to the list of unsupported domains. Status checks will be skipped due to browser limitations.`,
+  });
 }
 
 /**
@@ -72,7 +80,9 @@ async function checkSiteViaFetch(site) {
       (error.message.includes("Failed to fetch") ||
         error.message.includes("No 'Access-Control-Allow-Origin'"))
     ) {
-      console.warn(`CORS or network issue accessing ${site.url}: ${error.message}`);
+      console.warn(
+        `CORS or network issue accessing ${site.url}: ${error.message}`
+      );
       return "unsupported";
     }
 
@@ -96,18 +106,29 @@ async function checkSiteViaContentScript(url) {
       }
 
       // Filter out tabs with restricted URLs (chrome://, file://, etc.)
-      const allowedTab = tabs.find(tab => {
+      const allowedTab = tabs.find((tab) => {
         try {
           const tabUrl = new URL(tab.url);
-          return tabUrl.protocol === "http:" || tabUrl.protocol === "https:";
+          if (tabUrl.protocol !== "http:" && tabUrl.protocol !== "https:") {
+            return false;
+          }
+          // Exclude known error page URLs
+          if (
+            tab.url.startsWith("chrome-error://") ||
+            tab.url.startsWith("chrome://") ||
+            tab.url.startsWith("about:")
+          ) {
+            return false;
+          }
+          return true;
         } catch {
           return false;
         }
       });
 
       if (!allowedTab) {
-        // No accessible tab found
-        resolve("unsupported");
+        // No accessible or valid tab found
+        resolve("down");
         return;
       }
 
@@ -189,6 +210,12 @@ async function checkSite(site) {
  * Checks all stored sites and updates statuses, sending notifications on status recovery.
  */
 async function checkAllSites() {
+  // Load last known statuses from storage first
+  const stored = await new Promise((resolve) =>
+    chrome.storage.local.get(["siteStatuses"], resolve)
+  );
+  lastStatus = stored.siteStatuses || {};
+
   const sites = await getSites();
   const updatedStatus = {};
 
@@ -197,7 +224,7 @@ async function checkAllSites() {
     const prevStatus = lastStatus[site.url];
     updatedStatus[site.url] = currentStatus;
 
-    if (prevStatus !== currentStatus && currentStatus === "up" && prevStatus === "down") {
+    if (prevStatus === "down" && currentStatus === "up") {
       chrome.notifications.create(`${site.url}-recovery`, {
         type: "basic",
         iconUrl: ICON_PATH,
@@ -208,7 +235,7 @@ async function checkAllSites() {
   }
 
   lastStatus = updatedStatus;
-  chrome.storage.local.set({ siteStatuses: lastStatus });
+  chrome.storage.local.set({ siteStatuses: updatedStatus });
 }
 
 /**
@@ -225,7 +252,11 @@ async function checkSiteNow(siteUrl) {
   const prevStatus = lastStatus[site.url];
   lastStatus[site.url] = currentStatus;
 
-  if (prevStatus !== currentStatus && currentStatus === "up" && prevStatus === "down") {
+  if (
+    prevStatus !== currentStatus &&
+    currentStatus === "up" &&
+    prevStatus === "down"
+  ) {
     chrome.notifications.create(`${site.url}-recovery`, {
       type: "basic",
       iconUrl: ICON_PATH,
@@ -240,11 +271,7 @@ async function checkSiteNow(siteUrl) {
 
 // Initialize periodic checks on startup and installation
 chrome.runtime.onStartup.addListener(() => {
-  chrome.alarms.create("periodicCheck", { periodInMinutes: 10 });
-});
-
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.alarms.create("periodicCheck", { periodInMinutes: 10 });
+  chrome.alarms.create("periodicCheck", { periodInMinutes: 5 });
 });
 
 // Alarm event listener triggers periodic site status checks
@@ -274,5 +301,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       message: `${message.hostname} has been added to your watch list.`,
     });
   }
-
 });
