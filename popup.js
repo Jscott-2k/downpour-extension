@@ -156,7 +156,7 @@ async function loadSites() {
  * Adds a new site to storage if the URL is valid and not a duplicate.
  */
 function addSite() {
- const url = siteInput.value.trim();
+  const url = siteInput.value.trim();
   if (!url) {
     updateCurrentSiteStatus("Please enter a site URL.");
     return;
@@ -184,12 +184,9 @@ function addSite() {
       loadSites();
       updateCurrentSiteStatus("Site added successfully.");
 
-      // Notification for site added
-      chrome.notifications.create(`site-added-${hostname}`, {
-        type: "basic",
-        iconUrl: ICON_PATH,
-        title: "Site Added",
-        message: `${hostname} has been added to your watch list.`,
+      chrome.runtime.sendMessage({
+        action: "notifySiteAdded",
+        hostname: hostname,
       });
     });
   });
@@ -204,10 +201,22 @@ function removeSite(index) {
     const sites = data.sites || [];
     if (index < 0 || index >= sites.length) return;
 
-    sites.splice(index, 1);
+    const removedSite = sites.splice(index, 1)[0]; // Remove site
+
     chrome.storage.sync.set({ sites }, () => {
-      loadSites();
-      updateCurrentSiteStatus("Site removed.");
+      const hostnameToRemove = new URL(removedSite.url).hostname;
+      chrome.storage.local.get(["uncheckableDomains"], (data) => {
+        let uncheckable = data.uncheckableDomains || [];
+        uncheckable = uncheckable.filter((host) => host !== hostnameToRemove);
+
+        chrome.storage.local.set({ uncheckableDomains: uncheckable }, () => {
+          if (typeof UNCHECKABLE_DOMAINS !== "undefined") {
+            UNCHECKABLE_DOMAINS = uncheckable;
+          }
+          loadSites();
+          updateCurrentSiteStatus("Site removed.");
+        });
+      });
     });
   });
 }
@@ -275,33 +284,60 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (checkNowBtn) {
-    checkNowBtn.addEventListener("click", async () => {
-      if (checkNowBtn.disabled) return;
+if (checkNowBtn) {
+  const countdownEl = document.createElement("div");
+  countdownEl.style.fontSize = "0.9em";
+  countdownEl.style.marginTop = "4px";
+  countdownEl.style.color = "#0078d4";
+  countdownEl.style.minHeight = "1.2em"; // prevent layout jump
+  checkNowBtn.insertAdjacentElement("afterend", countdownEl);
 
-      checkNowBtn.disabled = true;
-      const originalText = checkNowBtn.textContent;
-      checkNowBtn.textContent = "Checking...";
-      updateCurrentSiteStatus("Checking sites...");
+  function startCountdown(seconds, message = "Next check available in") {
+    return new Promise((resolve) => {
+      let remaining = seconds;
+      countdownEl.textContent = `${message} ${remaining}s`;
 
-      try {
-        chrome.runtime.sendMessage({ action: "checkAllSites" }, (response) => {
-          if (chrome.runtime.lastError) {
-            updateCurrentSiteStatus("Error triggering site check.");
-          } else {
-            updateCurrentSiteStatus("Site check complete.");
-            loadSites();
-          }
-        });
-      } catch {
-        updateCurrentSiteStatus("Error during site check.");
-      }
-
-      // Re-enable after 30 seconds
-      setTimeout(() => {
-        checkNowBtn.disabled = false;
-        checkNowBtn.textContent = originalText;
-      }, 30000);
+      const intervalId = setInterval(() => {
+        remaining = Math.max(remaining - 1, 0);
+        if (remaining === 0) {
+          clearInterval(intervalId);
+          countdownEl.textContent = "";
+          resolve();
+        } else {
+          countdownEl.textContent = `${message} ${remaining}s`;
+        }
+      }, 1000);
     });
   }
+
+  checkNowBtn.addEventListener("click", async () => {
+    if (checkNowBtn.disabled) return;
+
+    checkNowBtn.disabled = true;
+    const originalText = checkNowBtn.textContent;
+    checkNowBtn.textContent = "Checking...";
+    updateCurrentSiteStatus("Checking sites...");
+
+    try {
+      await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: "checkAllSites" }, (response) => {
+          if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
+          else resolve(response);
+        });
+      });
+
+      updateCurrentSiteStatus("Site check complete.");
+      await loadSites();
+    } catch (error) {
+      console.error("Check failed:", error);
+      updateCurrentSiteStatus("Error during site check.");
+    }
+
+    await startCountdown(30);
+
+    checkNowBtn.disabled = false;
+    checkNowBtn.textContent = originalText;
+  });
+}
+
 });

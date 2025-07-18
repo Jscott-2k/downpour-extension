@@ -5,18 +5,24 @@ chrome.storage.local.get(["uncheckableDomains"], (data) => {
   UNCHECKABLE_DOMAINS = data.uncheckableDomains || [];
 });
 
-const ICON_PATH = "icons/icon48.png";
+const ICON_PATH = "icons/48.png";
 let lastStatus = {};
 
 /**
  * Persistently adds a hostname to the uncheckable domains list.
- * @param {string} hostname
+ * @param {string} rawHostname
  */
-function addToUncheckableDomains(hostname) {
+function addToUncheckableDomains(rawHostname) {
+  let hostname;
+  try {
+    hostname = new URL(rawHostname).hostname.trim();
+  } catch {
+    hostname = rawHostname.trim();
+  }
+
   if (!UNCHECKABLE_DOMAINS.includes(hostname)) {
     UNCHECKABLE_DOMAINS.push(hostname);
     chrome.storage.local.set({ uncheckableDomains: UNCHECKABLE_DOMAINS });
-    // Notify user that this domain is now marked uncheckable
     chrome.notifications.create(`uncheckable-${hostname}`, {
       type: "basic",
       iconUrl: ICON_PATH,
@@ -45,20 +51,33 @@ async function getSites() {
  */
 async function checkSiteViaFetch(site) {
   try {
+    const url = new URL(site.url);
+
+    // Skip unsupported URL schemes (e.g., chrome://)
+    const unsupportedProtocols = ["chrome:", "about:", "file:"];
+    if (unsupportedProtocols.includes(url.protocol)) {
+      return "unsupported";
+    }
+
     const response = await fetch(site.url, {
       method: "HEAD",
       cache: "no-store",
     });
+
     return response.ok ? "up" : "down";
-  } catch (err) {
+  } catch (error) {
+    // Handle CORS and network errors gracefully
     if (
-      err instanceof TypeError &&
-      (err.message.includes("Failed to fetch") ||
-        err.message.includes("No 'Access-Control-Allow-Origin'"))
+      error instanceof TypeError &&
+      (error.message.includes("Failed to fetch") ||
+        error.message.includes("No 'Access-Control-Allow-Origin'"))
     ) {
-      console.warn(`CORS blocked request to ${site.url}`);
+      console.warn(`CORS or network issue accessing ${site.url}: ${error.message}`);
       return "unsupported";
     }
+
+    // Default to 'down' on other errors
+    console.error(`Error checking site ${site.url}:`, error);
     return "down";
   }
 }
@@ -75,10 +94,26 @@ async function checkSiteViaContentScript(url) {
         resolve("down");
         return;
       }
-      const tabId = tabs[0].id;
+
+      // Filter out tabs with restricted URLs (chrome://, file://, etc.)
+      const allowedTab = tabs.find(tab => {
+        try {
+          const tabUrl = new URL(tab.url);
+          return tabUrl.protocol === "http:" || tabUrl.protocol === "https:";
+        } catch {
+          return false;
+        }
+      });
+
+      if (!allowedTab) {
+        // No accessible tab found
+        resolve("unsupported");
+        return;
+      }
+
       chrome.scripting.executeScript(
         {
-          target: { tabId },
+          target: { tabId: allowedTab.id },
           func: async () => {
             try {
               const resp = await fetch(window.location.origin, {
@@ -230,4 +265,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     checkSiteNow(message.url).then((result) => sendResponse(result));
     return true;
   }
+
+  if (message.action === "notifySiteAdded" && message.hostname) {
+    chrome.notifications.create(`site-added-${message.hostname}`, {
+      type: "basic",
+      iconUrl: ICON_PATH,
+      title: "Site Added",
+      message: `${message.hostname} has been added to your watch list.`,
+    });
+  }
+
 });
