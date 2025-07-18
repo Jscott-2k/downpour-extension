@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Downpour</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <header>
+        <h1 id="appTitle">☔ Downpour</h1>
+        <button id="supportBtn" type="button" title="Support the project">💖 Support Me</button>
+        <p id="currentTabUrl" aria-label="Current site URL">Loading current site...</p>
+        <button id="addCurrentSiteBtn" type="button" title="Add the current site">Add This Site</button>
+    </header>
+
+    <main>
+        <section id="siteStatusSection" aria-labelledby="statusTitle">
+            <h2 id="statusTitle" class="sr-only">Current Site Status</h2>
+            <div id="currentSiteStatus" role="status" aria-live="polite" aria-atomic="true">
+                <!-- Current site status message will go here -->
+            </div>
+            <button id="checkNowBtn" type="button" title="Check all sites now">Run Site Check</button>
+        </section>
+
+        <section id="watchedSitesSection" aria-labelledby="savedSitesTitle">
+            <h2 id="savedSitesTitle">
+                Watched Sites
+                <button id="toggleSitesBtn" title="Toggle Watched Sites">
+                    <span id="eyeIcon">👁️</span>
+                </button>
+            </h2>
+            <div id="watchedSitesWrapper">
+                <div id="siteList" role="list" aria-live="polite" aria-atomic="true">
+                    Loading sites...
+                </div>
+
+                <form id="siteForm" autocomplete="off" aria-labelledby="addOtherSiteTitle">
+                    <h3 id="addOtherSiteTitle" class="sr-only">Add Another Site</h3>
+                    <label for="siteInput" class="visually-hidden">Site URL to monitor</label>
+                    <input id="siteInput" type="url" placeholder="Enter another site URL" required autocomplete="off"
+                        aria-describedby="inputHelp" />
+                    <button type="submit" id="addSiteBtn">Add Another Site</button>
+                    <div id="inputHelp" class="sr-only">Enter the full URL of the site you want to monitor</div>
+                </form>
+            </div>
+        </section>
+    </main>
+    <footer>
+        Developed by Justin Scott ( <a href="https://github.com/Jscott-2k" target="_blank"
+            rel="noopener noreferrer">Jscott-2k</a> )
+    </footer>
+    <script src="popup.js"></script>
+</body>
+
+</html>

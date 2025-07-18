@@ -1,0 +1,287 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  margin: 0;
+  padding: 16px;
+  width: 340px;
+  background-color: #f0f6fc;
+  color: #1b1f23;
+  user-select: none;
+  box-sizing: border-box;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  color: #005a9e;
+}
+
+h2 {
+  font-size: 1.125rem;
+  margin: 1rem 0 0.5rem;
+  color: #003e73;
+}
+
+button {
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+#appTitle {
+  text-align: center;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+#addCurrentSiteBtn {
+  background-color: #0078d4;
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 9px 16px;
+  font-size: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+#addCurrentSiteBtn:hover,
+#addCurrentSiteBtn:focus {
+  background-color: #005a9e;
+  outline: none;
+}
+
+#currentSiteStatus {
+  padding: 10px 14px;
+  background-color: #e6f2fb;
+  border: 1px solid #a0c4ff;
+  border-radius: 6px;
+  color: #0078d4;
+  font-weight: 600;
+  min-height: 36px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 1.05rem;
+  transition: background-color 0.3s ease;
+}
+
+#checkNowBtn {
+  background-color: #1c84c6;
+  color: white;
+  font-weight: 600;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-bottom: 1rem;
+}
+
+#checkNowBtn:hover,
+#checkNowBtn:focus {
+  background-color: #1669a3;
+  outline: none;
+}
+
+#checkNowBtn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  color: #666;
+}
+
+#siteList {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #d6e9f8;
+  border-radius: 6px;
+  background-color: #ffffff;
+  padding: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  animation: fadeIn 0.4s ease;
+}
+
+#siteList > div {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95rem;
+  color: #1b1f23;
+  gap: 8px;
+  transition: background-color 0.2s ease;
+}
+
+#siteList > div:hover {
+  background-color: #f0f8ff;
+}
+
+#siteList > div:last-child {
+  border-bottom: none;
+}
+
+#siteList > div[style*="color: red"] {
+  font-weight: 700;
+}
+
+#siteList button {
+  background-color: #d62828;
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#siteList button:hover,
+#siteList button:focus {
+  background-color: #b71c1c;
+  outline: none;
+}
+
+form {
+  display: flex;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+input[type="url"] {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="url"]:focus {
+  border-color: #0078d4;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.3);
+}
+
+#addSiteBtn {
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#addSiteBtn:hover,
+#addSiteBtn:focus {
+  background-color: #005a9e;
+}
+
+#savedSitesTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#toggleSitesBtn {
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+#supportBtn {
+  background-color: #ff4d88;
+  color: white;
+  font-weight: 600;
+  padding: 6px 14px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 0 auto 1rem;
+  display: block;
+  transition: background-color 0.2s ease;
+}
+
+#supportBtn:hover,
+#supportBtn:focus {
+  background-color: #c71557;
+  outline: none;
+}
+
+#currentTabUrl {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0.25rem 0 1rem;
+  color: #0078d4;
+  user-select: text;
+  word-break: break-word;
+  max-width: 100%;
+  transition: color 0.3s ease;
+}
+
+#currentTabUrl.hidden-url {
+  color: transparent;
+  user-select: none;
+  pointer-events: none;
+}
+
+.hidden {
+  display: none;
+}
+
+.site-url::-webkit-scrollbar {
+  height: 6px;
+}
+.site-url::-webkit-scrollbar-thumb {
+  background-color: #b5d4f1;
+  border-radius: 3px;
+}
+
+.sr-only,
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+footer {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #666;
+  padding: 10px 0;
+  white-space: nowrap;
+}
+
+footer a {
+  color: #0078d4;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+footer a:hover,
+footer a:focus {
+  text-decoration: underline;
+}
