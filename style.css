@@ -124,6 +124,7 @@ button:active {
   color: #1b1f23;
   gap: 8px;
   transition: background-color 0.2s ease;
+  justify-content: space-between;
 }
 
 #siteList > div:hover {
